@@ -1,0 +1,23 @@
+// Route destination data - separated from map component to avoid SSR issues with Leaflet
+export const ROUTE_DESTINATIONS: Record<number, { name: string; pos: [number, number] }> = {
+  1:  { name: "Houston, TX",        pos: [29.7604, -95.3698] },
+  2:  { name: "Phoenix, AZ",        pos: [33.4484, -112.0740] },
+  3:  { name: "Kansas City, MO",    pos: [39.0997, -94.5786] },
+  4:  { name: "Atlanta, GA",        pos: [33.7490, -84.3880] },
+  5:  { name: "Portland, OR",       pos: [45.5051, -122.6750] },
+  6:  { name: "Nashville, TN",      pos: [36.1627, -86.7816] },
+  7:  { name: "Albuquerque, NM",    pos: [35.0844, -106.6504] },
+  8:  { name: "Salt Lake City, UT", pos: [40.7608, -111.8910] },
+  9:  { name: "Los Angeles, CA",    pos: [34.0522, -118.2437] },
+  10: { name: "Seattle, WA",        pos: [47.6062, -122.3321] },
+  11: { name: "Memphis, TN",        pos: [35.1495, -90.0490] },
+  12: { name: "St. Louis, MO",      pos: [38.6270, -90.1994] },
+  13: { name: "Atlanta, GA",        pos: [33.7490, -84.3880] },
+  14: { name: "Nashville, TN",      pos: [36.1627, -86.7816] },
+  15: { name: "Detroit, MI",        pos: [42.3314, -83.0458] },
+  16: { name: "Richmond, VA",       pos: [37.5407, -77.4360] },
+  17: { name: "Dallas, TX",         pos: [32.7767, -96.7970] },
+  18: { name: "Denver, CO",         pos: [39.7392, -104.9903] },
+  19: { name: "Chicago, IL",        pos: [41.8781, -87.6298] },
+  20: { name: "Houston, TX",        pos: [29.7604, -95.3698] },
+};

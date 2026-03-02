@@ -1,0 +1,39 @@
+import { DefaultSession } from "next-auth";
+import { UserRole } from "@/types";
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      role: UserRole;
+      organizationId: number;
+      organization: {
+        id: number;
+        name: string;
+        slug: string;
+      };
+    } & DefaultSession["user"];
+  }
+
+  interface User {
+    role: UserRole;
+    organizationId: number;
+    organization: {
+      id: number;
+      name: string;
+      slug: string;
+    };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    role: UserRole;
+    organizationId: number;
+    organization: {
+      id: number;
+      name: string;
+      slug: string;
+    };
+  }
+}
