@@ -245,35 +245,48 @@ export function DriverTimeline({
     return Math.max(0, Math.min(COL_COUNT - 1, daysDiff));
   };
 
-  /** Left-edge percentage for a load (snapped to its day column) */
+  /** Left-edge percentage for a load based on its start column */
   const getTimelinePosition = (assignment: Assignment): number =>
     getTimelineColumnIndex(assignment) * COL_WIDTH_PCT;
 
-  /** Each load occupies exactly one column width */
-  const getLoadDuration = (_assignment: Assignment): number => COL_WIDTH_PCT;
+  /** Load spans 1-3 columns based on mock transit duration (determined by order status) */
+  const getLoadDuration = (assignment: Assignment): number => {
+    const status = assignment.order?.status ?? assignment.assignment.status;
+    // Simulate realistic transit durations: in_transit=2 days, delivered=3 days, others=1 day
+    if (status === "in_transit" || status === "dispatched") return COL_WIDTH_PCT * 2;
+    if (status === "delivered" || status === "completed") return COL_WIDTH_PCT * 3;
+    return COL_WIDTH_PCT * 1.5;
+  };
 
-  /** Compute row assignments so loads in the SAME day column stack vertically */
+  /** Lay loads out sequentially on x-axis — no overlaps per driver */
   const computeAssignmentRows = (driverAssignments: Assignment[]) => {
-    if (driverAssignments.length === 0) return { rows: new Map<number, number>(), maxRow: 0 };
+    if (driverAssignments.length === 0) return { rows: new Map<number, number>(), maxRow: 0, offsets: new Map<number, number>() };
 
-    // Sort by column index
+    // Sort by column index (earliest first)
     const sorted = [...driverAssignments].sort(
       (a, b) => getTimelineColumnIndex(a) - getTimelineColumnIndex(b),
     );
 
     const rows = new Map<number, number>();
-    // Track how many loads are already placed in each column
-    const colOccupancy = new Map<number, number>();
+    const offsets = new Map<number, number>(); // x-offset overrides to prevent overlap
+
+    // Track the rightmost edge (in % of timeline) used so far
+    let rightEdge = 0;
 
     for (const assignment of sorted) {
-      const col = getTimelineColumnIndex(assignment);
-      const row = colOccupancy.get(col) ?? 0;
-      rows.set(assignment.assignment.id, row);
-      colOccupancy.set(col, row + 1);
+      const naturalLeft = getTimelinePosition(assignment);
+      const duration = getLoadDuration(assignment);
+
+      // If this load's natural start overlaps the previous load's end, push it right
+      const actualLeft = Math.max(naturalLeft, rightEdge + 0.5); // 0.5% gap between loads
+      offsets.set(assignment.assignment.id, actualLeft);
+      rightEdge = actualLeft + duration;
+
+      // All loads on row 0 — no vertical stacking needed since they don't overlap
+      rows.set(assignment.assignment.id, 0);
     }
 
-    const maxRow = Math.max(0, ...Array.from(rows.values()));
-    return { rows, maxRow };
+    return { rows, maxRow: 0, offsets };
   };
 
   const isOrderCardTarget = (target: EventTarget | null) =>
@@ -336,7 +349,7 @@ export function DriverTimeline({
           const statusInfo = getDriverStatusInfo(driver);
           const isAvailable = driver.status === "available";
           const isDraggedOver = draggedOver === driver.id;
-          const { rows: assignmentRows, maxRow } = computeAssignmentRows(driver.currentAssignments);
+          const { rows: assignmentRows, maxRow, offsets: assignmentOffsets } = computeAssignmentRows(driver.currentAssignments);
           // Base height 64px (h-16) + 40px per extra row; single row stays at 74px for visual comfort
           const laneHeight = maxRow > 0 ? 64 + (maxRow + 1) * 40 : 74;
 
@@ -526,7 +539,7 @@ export function DriverTimeline({
 
                 {/* Current assignments */}
                 {driver.currentAssignments.map((assignment) => {
-                  const leftPosition = getTimelinePosition(assignment);
+                  const leftPosition = assignmentOffsets?.get(assignment.assignment.id) ?? getTimelinePosition(assignment);
                   const width = getLoadDuration(assignment);
                   const priorityColor = priorityColors[assignment.order.priorityLevel as keyof typeof priorityColors] || priorityColors.normal;
                   const statusColor = loadStatusColors[assignment.order.status as keyof typeof loadStatusColors] || loadStatusColors.assigned;
