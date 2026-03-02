@@ -487,7 +487,8 @@ export default function FleetMapPage() {
         </div>
       </header>
 
-      <div className="relative z-10 flex min-h-0 flex-1 gap-4 p-3 md:p-5">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-4 p-3 lg:flex-row md:p-5">
+        {/* Desktop sidebar - hidden on mobile */}
         <aside className="hidden w-[330px] shrink-0 flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/82 shadow-xl backdrop-blur-xl lg:flex">
           <div className="border-b border-slate-200 px-4 py-3">
             <div className="relative">
@@ -552,8 +553,9 @@ export default function FleetMapPage() {
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className="rounded-2xl border border-white/70 bg-white/75 p-2.5 backdrop-blur-xl lg:hidden">
+        {/* Mobile driver cards - constrained height above map */}
+        <div className="flex h-[40vh] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/82 shadow-xl backdrop-blur-xl lg:hidden">
+          <div className="border-b border-slate-200 px-4 py-3">
             <div className="relative">
               <MagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -590,7 +592,35 @@ export default function FleetMapPage() {
             </div>
           </div>
 
-          <div className="fleet-map-shell relative h-full min-h-0 w-full flex-1 overflow-hidden rounded-2xl border border-white/80 shadow-2xl md:rounded-[2rem]">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex items-center justify-between px-4 py-2 text-xs font-medium uppercase tracking-[0.09em] text-slate-500">
+              <span>Mission Queue</span>
+              <span>{visibleDrivers.length} Units</span>
+            </div>
+            <div className="space-y-2 overflow-y-auto px-3 pb-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {visibleDrivers.map((driver) => (
+                <DriverRow
+                  key={driver.id}
+                  driver={driver}
+                  selected={selectedDriverId === driver.id}
+                  followed={followingDriverId === driver.id}
+                  onSelect={() => setSelectedDriverId(driver.id)}
+                  onFollow={() => setFollowingDriverId((previous) => (previous === driver.id ? null : driver.id))}
+                />
+              ))}
+
+              {visibleDrivers.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500">
+                  No drivers match current filters.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+
+          <div className="fleet-map-shell relative min-h-[50vh] w-full flex-1 overflow-hidden rounded-2xl border border-white/80 shadow-2xl lg:min-h-0 lg:h-full md:rounded-[2rem]">
             <FleetMapComponent
               filter={filter}
               searchQuery={searchQuery}
@@ -766,9 +796,10 @@ export default function FleetMapPage() {
         }
 
         .fleet-map-shell .leaflet-container {
-          touch-action: none;
+          touch-action: pan-x pan-y pinch-zoom;
           -webkit-touch-callout: none;
           -webkit-tap-highlight-color: transparent;
+          -webkit-overflow-scrolling: touch;
         }
 
         .fleet-map-shell .leaflet-control-container {

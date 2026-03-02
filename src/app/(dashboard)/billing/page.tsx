@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Receipt,
   Calculator,
@@ -75,6 +75,11 @@ export default function BillingPage() {
   const { data: invoicesData } = useInvoices({ limit: 5 });
   const { data: settlementsData } = useSettlements({ limit: 5 });
   const { data: agingData } = useARAgingData();
+
+  // Scroll to top when activeTab changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
