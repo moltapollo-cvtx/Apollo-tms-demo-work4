@@ -431,7 +431,7 @@ export default function FleetMapPage() {
   };
 
   return (
-    <div className="relative -mx-6 -mt-6 flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-[radial-gradient(circle_at_top,_#d8f4ff_0%,_#eff8ff_40%,_#f8fafc_74%)]">
+    <div className="relative -mx-3 -mt-3 md:-mx-6 md:-mt-6 flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[radial-gradient(circle_at_top,_#d8f4ff_0%,_#eff8ff_40%,_#f8fafc_74%)]">
       <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-apollo-cyan-200/50 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-sky-100/80 blur-3xl" />
 
@@ -590,7 +590,7 @@ export default function FleetMapPage() {
             </div>
           </div>
 
-          <div className="fleet-map-shell relative min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-white/80 shadow-2xl">
+          <div className="fleet-map-shell relative min-h-[50vh] flex-1 overflow-hidden rounded-2xl md:rounded-[2rem] border border-white/80 shadow-2xl">
             <FleetMapComponent
               filter={filter}
               searchQuery={searchQuery}

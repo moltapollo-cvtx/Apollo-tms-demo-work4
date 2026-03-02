@@ -29,6 +29,25 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Prevent accidental horizontal scrolling site-wide ── */
+@layer base {
+  html, body {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+}
+
+/* ── Allow intentional horizontal scroll on specific elements ── */
+.horizontal-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
