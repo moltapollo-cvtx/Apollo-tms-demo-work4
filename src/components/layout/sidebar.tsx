@@ -87,7 +87,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(true);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(true);
+  // Mobile sidebar is always expanded; desktop respects collapsed state
+  const collapsed = isMobileOpen ? false : desktopCollapsed;
   const pathname = usePathname();
   const { data: session } = useSession();
 
@@ -261,7 +263,7 @@ export function Sidebar({ isMobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Collapse toggle - only visible on desktop */}
       <motion.button
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={() => setDesktopCollapsed(!desktopCollapsed)}
         className="absolute -right-4 top-20 z-50 hidden h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-white/95 text-muted-foreground shadow-md backdrop-blur-lg transition-colors hover:text-foreground lg:flex"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
