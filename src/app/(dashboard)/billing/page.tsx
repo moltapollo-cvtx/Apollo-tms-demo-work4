@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Receipt,
   Calculator,
@@ -9,19 +8,19 @@ import {
   TrendUp,
   User,
   CreditCard,
+  ArrowLeft,
   ArrowRight,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs } from "@/components/ui/tabs";
 import { InvoiceList } from "@/components/billing/invoice-list";
 import { ARAgingDashboard } from "@/components/billing/ar-aging-dashboard";
 import { SettlementRunInterface } from "@/components/billing/settlement-run-interface";
 import { ChargeCodesManagement } from "@/components/billing/charge-codes-management";
 import { RatingEngine } from "@/components/billing/rating-engine";
 import { ChartOfAccounts } from "@/components/billing/chart-of-accounts";
-import { useInvoices, useSettlements, useARAgingData, useChargeCodes } from "@/lib/hooks/api/use-billing";
+import { useInvoices, useSettlements, useARAgingData } from "@/lib/hooks/api/use-billing";
 
 export const dynamic = "force-dynamic";
 
@@ -71,14 +70,11 @@ const BILLING_MODULES = [
 ];
 
 export default function BillingPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
 
   const { data: invoicesData } = useInvoices({ limit: 5 });
   const { data: settlementsData } = useSettlements({ limit: 5 });
   const { data: agingData } = useARAgingData();
-  const { data: chargeCodes } = useChargeCodes({ limit: 10 });
-  const configuredChargeCodes = chargeCodes?.length ?? 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -95,58 +91,47 @@ export default function BillingPage() {
     avgDaysToPay: 28.4,
   };
 
-  const tabs = [
-    { value: "overview", label: "Overview" },
-    { value: "invoices", label: "Invoices" },
-    { value: "settlements", label: "Settlements" },
-    { value: "ar-aging", label: "AR Aging" },
-    { value: "rating-engine", label: "Rating Engine" },
-    { value: "charge-codes", label: "Charge Codes" },
-    { value: "chart-of-accounts", label: "Chart of Accounts" },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             Billing & Financial
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Comprehensive billing, settlements, and financial management system
-          </p>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setActiveTab("invoices")}
+              className="h-auto gap-1 rounded-full px-2 py-1 text-xs sm:text-sm"
+            >
+              <Receipt className="h-3.5 w-3.5" weight="light" />
+              Open Invoices
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setActiveTab("settlements")}
+              className="h-auto gap-1 rounded-full px-2 py-1 text-xs sm:text-sm"
+            >
+              <CreditCard className="h-3.5 w-3.5" weight="light" />
+              Run Settlements
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setActiveTab("rating-engine")}
+              className="h-auto gap-1 rounded-full px-2 py-1 text-xs sm:text-sm"
+            >
+              <Calculator className="h-3.5 w-3.5" weight="light" />
+              Rate Calculator
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push("/billing/invoices/generate")}
-            className="gap-2"
-          >
-            <Plus className="size-4" weight="light" />
-            Generate Invoice
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/billing/settlements/run")}
-            className="gap-2"
-          >
-            <Calculator className="size-4" weight="light" />
-            Settlement Run
-          </Button>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Comprehensive billing, settlements, and financial management system
+        </p>
       </div>
 
-      {/* Navigation Tabs */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        tabs={tabs}
-        className="w-full"
-      />
-
-      {/* Tab Content */}
-      {activeTab === "overview" && (
+      {activeTab === "overview" ? (
         <div className="space-y-6">
           {/* Financial Summary */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -170,7 +155,7 @@ export default function BillingPage() {
                 color: "text-red-500"
               },
               {
-                label: "Avg Days to Pay",
+                label: "Average Days to Pay",
                 value: summaryStats.avgDaysToPay.toString(),
                 icon: Calculator,
                 color: "text-orange-500"
@@ -189,57 +174,6 @@ export default function BillingPage() {
               </Card>
             ))}
           </div>
-
-          {/* Quick Actions */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-            <p className="mb-4 text-sm text-muted-foreground">
-              <span className="font-mono">{configuredChargeCodes.toLocaleString()}</span> charge codes available for rating and invoicing.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Button
-                variant="outline"
-                className="p-4 h-auto justify-start"
-                onClick={() => setActiveTab("rating-engine")}
-              >
-                <div className="flex items-center gap-3">
-                  <Calculator className="size-8 text-apollo-cyan-500" weight="light" />
-                  <div className="text-left">
-                    <p className="font-medium">Rate Calculator</p>
-                    <p className="text-sm text-muted-foreground">Calculate freight rates</p>
-                  </div>
-                </div>
-              </Button>
-
-              <Button
-                variant="outline"
-                className="p-4 h-auto justify-start"
-                onClick={() => router.push("/billing/invoices/generate")}
-              >
-                <div className="flex items-center gap-3">
-                  <Plus className="size-8 text-blue-500" weight="light" />
-                  <div className="text-left">
-                    <p className="font-medium">Generate Invoice</p>
-                    <p className="text-sm text-muted-foreground">Create new invoices</p>
-                  </div>
-                </div>
-              </Button>
-
-              <Button
-                variant="outline"
-                className="p-4 h-auto justify-start"
-                onClick={() => setActiveTab("settlements")}
-              >
-                <div className="flex items-center gap-3">
-                  <Calculator className="size-8 text-apollo-cyan-500" weight="light" />
-                  <div className="text-left">
-                    <p className="font-medium">Run Settlements</p>
-                    <p className="text-sm text-muted-foreground">Process driver pay</p>
-                  </div>
-                </div>
-              </Button>
-            </div>
-          </Card>
 
           {/* Module Grid */}
           <Card className="p-6">
@@ -343,14 +277,27 @@ export default function BillingPage() {
             </Card>
           </div>
         </div>
-      )}
+      ) : (
+        <div className="space-y-6 pb-12">
+          <div>
+            <button
+              type="button"
+              onClick={() => setActiveTab("overview")}
+              className="mb-4 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Billing
+            </button>
+          </div>
 
-      {activeTab === "invoices" && <InvoiceList />}
-      {activeTab === "settlements" && <SettlementRunInterface />}
-      {activeTab === "ar-aging" && <ARAgingDashboard />}
-      {activeTab === "rating-engine" && <RatingEngine />}
-      {activeTab === "charge-codes" && <ChargeCodesManagement />}
-      {activeTab === "chart-of-accounts" && <ChartOfAccounts />}
+          {activeTab === "invoices" && <InvoiceList />}
+          {activeTab === "settlements" && <SettlementRunInterface />}
+          {activeTab === "ar-aging" && <ARAgingDashboard />}
+          {activeTab === "rating-engine" && <RatingEngine />}
+          {activeTab === "charge-codes" && <ChargeCodesManagement />}
+          {activeTab === "chart-of-accounts" && <ChartOfAccounts />}
+        </div>
+      )}
     </div>
   );
 }
