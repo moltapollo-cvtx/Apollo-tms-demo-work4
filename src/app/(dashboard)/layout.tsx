@@ -303,7 +303,7 @@ export default function DashboardLayout({
     <NotificationProvider>
       <CommandPaletteProvider items={commandItems}>
         <TooltipProvider delayDuration={0}>
-          <div className="flex min-h-[100dvh]">
+          <div className="flex min-h-[100dvh] overflow-x-hidden">
             <Sidebar
               isMobileOpen={isMobileSidebarOpen}
               onMobileClose={() => setIsMobileSidebarOpen(false)}

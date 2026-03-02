@@ -250,6 +250,41 @@ function MapSetView() {
   return null;
 }
 
+function MapResizeObserver() {
+  const map = useMap();
+
+  useEffect(() => {
+    const invalidate = () => {
+      map.invalidateSize({ pan: false, debounceMoveend: true });
+    };
+
+    const rafId = window.requestAnimationFrame(invalidate);
+    const timeoutId = window.setTimeout(invalidate, 180);
+    const handleViewportChange = () => {
+      window.setTimeout(invalidate, 120);
+    };
+
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("orientationchange", handleViewportChange);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => invalidate());
+      resizeObserver.observe(map.getContainer());
+    }
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("orientationchange", handleViewportChange);
+      resizeObserver?.disconnect();
+    };
+  }, [map]);
+
+  return null;
+}
+
 function useAnimatedPositions(drivers: DriverInfo[]) {
   const [positions, setPositions] = useState<Record<number, [number, number]>>({
     ...DRIVER_POSITIONS,
@@ -376,7 +411,7 @@ export default function FleetMapComponent({
     <MapContainer
       center={[38.5, -96.5]}
       zoom={4}
-      className="fleet-map-canvas"
+      className="fleet-map-canvas h-full w-full"
       style={{ height: "100%", width: "100%" }}
       zoomControl
       attributionControl
@@ -389,6 +424,7 @@ export default function FleetMapComponent({
         subdomains={mapThemeConfig.subdomains}
       />
       <MapSetView />
+      <MapResizeObserver />
       <MapFollower driverId={followDriverId} positions={positions} />
 
       {showRoutes &&

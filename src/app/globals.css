@@ -29,10 +29,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ── Prevent accidental horizontal scrolling site-wide ── */
+/* ── Baseline layout guards ── */
 @layer base {
-  html, body {
-    overflow-x: hidden;
+  body {
     overscroll-behavior-x: none;
   }
   *, *::before, *::after {
