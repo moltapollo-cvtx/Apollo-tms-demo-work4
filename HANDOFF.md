@@ -1,139 +1,155 @@
-# HANDOFF.md — Apollo TMS Build Pipeline
+# HANDOFF — Apollo TMS Stage (work4)
 
-## Current Pass: 12 of 12
-## Status: ✅ COMPLETED
+**Date:** March 2, 2026 6:57 AM CST  
+**Repo:** https://github.com/moltapollo-cvtx/Apollo-tms-demo-work4  
+**Local:** `~/Projects/apollo-tms-demo-work4/`  
+**Server:** Port 3003, production mode, `npx next start -p 3003 -H 0.0.0.0`  
+**LAN URL:** http://10.0.0.139:3003  
+**Framework:** Next.js 16 with Turbopack  
 
-## Context
-Read PRD.md for full product requirements. Read BUILD-PLAN.md for the 12-pass plan.
-Review all existing code to understand what's been built so far before making changes.
+---
 
-## Instructions for This Pass
-Pass 12: FINAL POLISH. This is the gem-cutting pass. Go through EVERY screen and apply: 1) Taste skill audit — verify no Inter font, no purple, no emoji, no pure black, no 3-column equal cards, no generic names in mock data, no oversaturated accents. 2) Motion polish — every page transition uses Framer Motion layout animations, every list uses staggered children, every modal/sheet has spring physics, every button has tactile feedback (scale-[0.98] on active). 3) Empty states — beautiful, composed empty states with illustration/icon + helpful text + action button for EVERY view that can be empty. 4) Loading states — skeleton shimmer loaders matching exact layout for EVERY data-dependent view. 5) Error boundaries — catch and display errors gracefully everywhere. 6) Command palette — wire Cmd+K to search all pages, recent orders, drivers by name, customers. 7) Color consistency — verify emerald accent is consistent, zinc neutrals are consistent. 8) Typography — verify Geist everywhere, Geist Mono for numbers. 9) Spacing — verify padding/margins are mathematically consistent. 10) Write comprehensive README.md with setup instructions, tech stack, architecture overview. Git commit everything.
+## What This Is
 
-## Design Rules (CRITICAL — apply to ALL passes):
-- Font: Geist for UI, Geist Mono for all numbers/data
-- NO Inter font anywhere
-- NO purple/violet colors anywhere
-- NO emoji in UI code
-- NO pure black (#000) — use zinc-950
-- Colors: Zinc/Slate base + Emerald accent only
-- Shadows: subtle, tinted to background hue
-- Use min-h-[100dvh] not h-screen
-- CSS Grid over flexbox percentage math
-- max-w-[1400px] mx-auto for page containers
-- Monospace (Geist Mono) for ALL numerical displays
-- Framer Motion spring physics for all animations
-- Phosphor Icons (not Lucide, not emoji)
-- Loading skeletons for every data view
-- Empty states for every list/table view
-- Error states for every form/data view
-- Staggered reveals for lists and grids
-- NO 3-column equal card layouts
-- NO generic names (John Doe, Acme Corp)
-- NO oversaturated colors
-- NO neon glows
+A fully functional TMS (Transportation Management System) tech demo for Apollo Energy Resources. All data is mock — no real database. Uses next-auth but auth is bypassed via a passthrough `src/proxy.ts` (Next.js 16 uses proxy.ts instead of middleware.ts).
 
-## ✅ PASS 12 COMPLETION REPORT
+---
 
-### 🎯 All Polish Tasks Successfully Completed
+## Commit History (work4)
 
-**1. ✅ Taste Skill Audit - COMPLETED**
-- Fixed all Lucide icon imports → Phosphor icons (4 files)
-- Removed all emoji from UI components → proper Phosphor icons
-- Verified no pure black (#000) usage in UI code
-- Confirmed emerald accent & zinc neutral color consistency
-- Validated Geist fonts throughout (no Inter fonts)
+| Commit | Description | Potential Issues |
+|--------|-------------|-----------------|
+| `9bdd10c` | **Baseline** — snapshot from work3 branch `claude/fix-sidebar-toggle-SzPmE` | Known good state |
+| `272f038` | **Driver planner Gantt fix** — loads laid out sequentially on x-axis | ⚠️ See notes below |
+| `ef3928b` | **Mobile sidebar fix** — always opens expanded on mobile | ⚠️ See notes below |
+| `fc0172a` | **Scroll lock + fleet map mobile** — overflow-x hidden site-wide | ⚠️ See notes below |
 
-**2. ✅ Motion Polish - COMPLETED**
-- Added Framer Motion layout animations to all page transitions
-- Implemented staggered children animations for dashboard cards
-- Confirmed spring physics in modals and buttons (scale: 0.98)
-- All animations use proper spring config (stiffness: 300, damping: 30)
+---
 
-**3. ✅ Empty States - COMPLETED**
-- Created beautiful EmptyState component with icons, titles, descriptions, actions
-- Implemented in Orders, Drivers, and Customers pages
-- All empty states include clear action buttons and engaging messaging
-- Uses proper Phosphor icons and follows design system
+## Recent Changes — Detailed Review Needed
 
-**4. ✅ Loading States - COMPLETED**
-- Enhanced skeleton components with shimmer animations
-- Implemented SkeletonRows and SkeletonCards for DataTable
-- Added staggered reveal animations (delay: index * 0.05)
-- All loading states match exact layout structure
+### 1. Driver Planner / Timeline (`src/components/dispatch/driver-timeline.tsx`)
+**Commit:** `272f038`  
+**Intent:** Loads were stacking vertically on the same day. Fix makes them lay out sequentially on the x-axis like a Gantt chart.
 
-**5. ✅ Error Boundaries - COMPLETED**
-- Created comprehensive ErrorBoundary system
-- Added page-level error boundary in root layout
-- Added section-level error boundary in dashboard layout
-- Includes beautiful error UI with retry/reset functionality
-- Development debug information with stack traces
+**What was changed:**
+- `getLoadDuration()` — now returns 1.5-3x `COL_WIDTH_PCT` based on order status (was always 1x)
+- `computeAssignmentRows()` — now returns an `offsets` Map that pushes overlapping loads rightward with a 0.5% gap. All loads go to row 0 (no vertical stacking)
+- Rendering uses `assignmentOffsets?.get(id)` for `leftPosition` instead of raw `getTimelinePosition()`
 
-**6. ✅ Command Palette - COMPLETED**
-- Fully functional Cmd+K command palette
-- Navigation commands for all main pages
-- Quick action commands (new order, add driver, add customer)
-- Comprehensive search with keywords and grouping
+**Potential mistakes:**
+- Loads could extend past the right edge of the timeline if there are many per driver (no clamping)
+- The `maxRow` is always 0 now, which collapses lane height — may look wrong if a driver has many loads
+- The `offsets` map is returned from `computeAssignmentRows` but the TypeScript return type wasn't explicitly updated (relies on inference)
+- Duration multipliers (1.5x, 2x, 3x) are arbitrary — may not look right visually
 
-**7. ✅ Design Verification - COMPLETED**
-- Color consistency: Emerald primary, zinc neutrals verified
-- Typography: Geist UI fonts, Geist Mono for numbers confirmed
-- Spacing: Consistent padding/margin system verified
-- No design violations found
+### 2. Mobile Sidebar (`src/components/layout/sidebar.tsx`)
+**Commit:** `ef3928b`  
+**Intent:** Sidebar was opening collapsed (icons only) on mobile because `useState(true)`.
 
-**8. ✅ Comprehensive README - COMPLETED**
-- Complete tech stack documentation
-- Setup and installation instructions
-- Project structure overview
-- Database schema explanation
-- Development guidelines and scripts
-- Deployment options and examples
-- Feature descriptions and capabilities
+**What was changed:**
+- Renamed `collapsed` state to `desktopCollapsed`
+- Added computed: `const collapsed = isMobileOpen ? false : desktopCollapsed;`
+- Toggle button uses `setDesktopCollapsed` instead of `setCollapsed`
 
-### 🔧 Build Status
-- Turbopack compilation: ✅ Successful
-- TypeScript errors fixed (UserCircle import, onAddCustomer)
-- Runtime error in settings page (React context issue) - non-blocking for main functionality
-- All major features and polish elements working correctly
+**Potential mistakes:**
+- `isMobileOpen` is a prop, and when the mobile overlay closes (`isMobileOpen` → false), `collapsed` reverts to `desktopCollapsed` (true). This is correct behavior.
+- However, if `sidebarContent` is rendered in both desktop and mobile aside elements, the mobile aside might flash from expanded to collapsed during the AnimatePresence exit animation since `isMobileOpen` becomes false before the exit animation completes. This could cause a visual glitch.
 
-### 📁 Files Modified/Created
-**New Files:**
-- `src/components/ui/empty-state.tsx` - Beautiful empty state component
-- `src/components/ui/error-boundary.tsx` - Comprehensive error boundary system
-- Enhanced `README.md` with full documentation
+### 3. Scroll Lock + Fleet Map Mobile (`src/app/globals.css` + `src/app/(dashboard)/fleet-map/page.tsx`)
+**Commit:** `fc0172a`  
+**Intent:** Prevent accidental horizontal scrolling site-wide; fix fleet map on iOS.
 
-**Enhanced Files:**
-- `src/app/layout.tsx` - Added PageErrorBoundary
-- `src/app/(dashboard)/layout.tsx` - Added SectionErrorBoundary + CommandPalette
-- `src/app/(dashboard)/page.tsx` - Added staggered animations + fixed TrendingUp icon
-- `src/components/ui/data-table.tsx` - Added EmptyState support + skeleton components
-- `src/app/(dashboard)/orders/page.tsx` - Beautiful empty state
-- `src/app/(dashboard)/drivers/page.tsx` - Beautiful empty state + UserCircle import
-- `src/components/customers/customer-list.tsx` - Beautiful empty state + fixed onClick
-- Multiple dispatch components - Fixed invalid Phosphor icons (Stairs→Stack, House→Buildings)
+**What was changed in globals.css:**
+```css
+html, body {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+.horizontal-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+```
 
-### 🏆 Key Achievements
-1. **Complete Taste Compliance** - 100% adherence to design rules
-2. **Premium Motion System** - Sophisticated animation framework
-3. **Exceptional UX** - Beautiful empty states and error handling
-4. **Developer Experience** - Comprehensive documentation and error boundaries
-5. **Production Ready** - All major functionality polished and working
+**What was changed in fleet-map/page.tsx:**
+- Main container: `-mx-6 -mt-6` → `-mx-3 -mt-3 md:-mx-6 md:-mt-6`
+- Main container: `h-[calc(100vh-4rem)]` → `h-[calc(100dvh-4rem)]`
+- Map shell: `min-h-0` → `min-h-[50vh]`
+- Map shell: `rounded-[2rem]` → `rounded-2xl md:rounded-[2rem]`
 
-### ⚠️ Known Issues
-- Settings page has React context runtime error (non-blocking)
-- Build succeeds but page data collection fails for /settings route
-- All other pages and functionality working correctly
+**Potential mistakes:**
+- `overflow-x: hidden` on `html, body` is aggressive — it could clip absolutely positioned elements (dropdowns, tooltips, modals) that extend past the viewport edge. Popovers using `position: fixed` are fine, but `position: absolute` relative to body could be clipped.
+- The `box-sizing: border-box` on `*` shouldn't cause issues (it's best practice) but if any component relied on `content-box` sizing, it could break.
+- `.horizontal-scroll` class was added but NOT applied to any existing elements — the existing elements still use Tailwind's `overflow-x-auto` class directly, which should still work since they're children of the body, not the body itself.
+- Fleet map `-mx-3` on mobile may not perfectly align with the page padding — test visually.
 
-### 🎉 Apollo TMS Pass 12 - FINAL POLISH COMPLETE
-This completes the 12-pass build pipeline. Apollo TMS now has production-quality polish with:
-- Beautiful, consistent design system
-- Smooth animations and micro-interactions
-- Comprehensive error handling
-- Excellent empty states and loading experiences
-- Full command palette functionality
-- Complete documentation
+---
 
-## Next Steps:
-1. Address the settings page React context issue if needed
-2. Deploy to production environment
-3. Conduct user testing and feedback collection
+## Critical Files
+
+| File | Purpose |
+|------|---------|
+| `src/proxy.ts` | **Auth bypass** — must be passthrough for demo. Gets overwritten if pulling from remote. |
+| `.env.local` | `NEXTAUTH_URL=http://10.0.0.139:3003`, `NEXTAUTH_SECRET=apollo-tms-dev-secret-2026` |
+| `src/components/layout/sidebar.tsx` | Sidebar — desktop collapsed by default, mobile always expanded |
+| `src/components/dispatch/driver-timeline.tsx` | Driver visual planner / Gantt chart |
+| `src/app/globals.css` | Global styles including scroll lock |
+| `src/app/(dashboard)/fleet-map/page.tsx` | Fleet map page with Leaflet |
+
+---
+
+## How to Rebuild 3003
+
+```bash
+pkill -f "next start"
+sleep 2
+cd ~/Projects/apollo-tms-demo-work4
+npm install
+npm run build -- --webpack
+nohup npx next start -p 3003 -H 0.0.0.0 > /tmp/stage.log 2>&1 &
+```
+
+---
+
+## If Pulling from Remote
+
+ALWAYS restore these after pulling:
+
+**src/proxy.ts:**
+```typescript
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+export default function proxy(req: NextRequest) { return NextResponse.next(); }
+export const config = { matcher: [] };
+```
+
+**.env.local:**
+```
+NEXTAUTH_SECRET=apollo-tms-dev-secret-2026
+NEXTAUTH_URL=http://10.0.0.139:3003
+```
+
+---
+
+## Known Good Baseline
+
+If the recent changes (commits after `9bdd10c`) need to be reverted:
+```bash
+git revert fc0172a ef3928b 272f038
+```
+Or hard reset to baseline:
+```bash
+git reset --hard 9bdd10c
+```
+
+---
+
+## Skip List
+- `src/app/(dashboard)/ai/page.tsx` — Walker said skip, too involved
+- Finance Dashboard (port 3001) and Mission Control (port 3002) LaunchAgents are unloaded to free memory
