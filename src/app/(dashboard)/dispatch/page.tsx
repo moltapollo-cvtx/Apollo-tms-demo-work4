@@ -193,12 +193,13 @@ const initialFilters: FilterState = {
   search: "",
 };
 
-type PlannerTab = "drivers_timeline" | "unassigned_loads" | "revenue_percentiles";
+type PlannerTab = "drivers_timeline" | "unassigned_loads" | "revenue_percentiles" | "split_view";
 
 const plannerTabs: Array<{ value: PlannerTab; label: string }> = [
   { value: "drivers_timeline", label: "Drivers Timeline" },
   { value: "unassigned_loads", label: "Unassigned Loads" },
   { value: "revenue_percentiles", label: "Revenue Percentiles" },
+  { value: "split_view", label: "Split View" },
 ];
 
 const formatDriverStatus = (status: string) =>
@@ -771,6 +772,53 @@ export default function DispatchPage() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {plannerTab === "split_view" && (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            <div className="rounded-xl border border-border bg-card shadow-sm">
+              <div className="h-[520px] overflow-y-auto p-4 sm:p-5 lg:h-[calc(100vh-20rem)]">
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-16 bg-muted rounded-lg" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <DriverTimeline
+                    drivers={filteredDrivers}
+                    onDriverClick={handleDriverClick}
+                    onOrderClick={handleOrderSelect}
+                    onDropLoad={handleDropLoad}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card shadow-sm">
+              <div className="h-[520px] overflow-y-auto p-4 sm:p-5 lg:h-[calc(100vh-20rem)]">
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-20 bg-muted rounded-lg" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <LoadQueue
+                    orders={filteredOrders}
+                    selectedOrderIds={selectedOrderIds}
+                    onOrderSelect={handleOrderSelect}
+                    onOrderToggleSelect={handleOrderToggleSelect}
+                    onBulkAction={handleBulkAction}
+                  />
+                )}
+              </div>
             </div>
           </div>
         )}
