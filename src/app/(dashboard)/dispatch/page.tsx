@@ -109,9 +109,12 @@ interface DispatchDriver {
   email?: string;
   city?: string;
   state?: string;
+  homeTerminal?: string;
   address?: string;
   hireDate?: string;
   safetyScore?: string;
+  cdlEndorsements?: string[];
+  licenseExpirationDate?: string;
   cdlState?: string;
   cdlExpiration?: string;
   qualifications?: Array<{
@@ -225,6 +228,219 @@ const formatCurrency = (value: number) =>
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
+
+const ONE_HOUR_MS = 1000 * 60 * 60;
+
+const neighboringStates: Record<string, string[]> = {
+  AL: ["FL", "GA", "MS", "TN"],
+  AR: ["LA", "MS", "MO", "OK", "TN", "TX"],
+  AZ: ["CA", "CO", "NM", "NV", "UT"],
+  CA: ["AZ", "NV", "OR"],
+  CO: ["AZ", "KS", "NE", "NM", "OK", "UT", "WY"],
+  FL: ["AL", "GA"],
+  GA: ["AL", "FL", "NC", "SC", "TN"],
+  IA: ["IL", "MN", "MO", "NE", "SD", "WI"],
+  IL: ["IA", "IN", "KY", "MO", "WI"],
+  IN: ["IL", "KY", "MI", "OH"],
+  KS: ["CO", "MO", "NE", "OK"],
+  KY: ["IL", "IN", "MO", "OH", "TN", "VA", "WV"],
+  LA: ["AR", "MS", "TX"],
+  MI: ["IN", "OH", "WI"],
+  MN: ["IA", "ND", "SD", "WI"],
+  MO: ["AR", "IA", "IL", "KS", "KY", "NE", "OK", "TN"],
+  MS: ["AL", "AR", "LA", "TN"],
+  NC: ["GA", "SC", "TN", "VA"],
+  ND: ["MN", "MT", "SD"],
+  NE: ["CO", "IA", "KS", "MO", "SD", "WY"],
+  NJ: ["DE", "NY", "PA"],
+  NM: ["AZ", "CO", "OK", "TX", "UT"],
+  NV: ["AZ", "CA", "ID", "OR", "UT"],
+  OH: ["IN", "KY", "MI", "PA", "WV"],
+  OK: ["AR", "CO", "KS", "MO", "NM", "TX"],
+  OR: ["CA", "ID", "NV", "WA"],
+  PA: ["MD", "NJ", "NY", "OH", "WV"],
+  SC: ["GA", "NC"],
+  SD: ["IA", "MN", "MT", "ND", "NE", "WY"],
+  TN: ["AL", "AR", "GA", "KY", "MO", "MS", "NC", "VA"],
+  TX: ["AR", "LA", "NM", "OK"],
+  UT: ["AZ", "CO", "ID", "NV", "NM", "WY"],
+  VA: ["KY", "MD", "NC", "TN", "WV"],
+  WA: ["ID", "OR"],
+  WI: ["IA", "IL", "MI", "MN"],
+  WV: ["KY", "MD", "OH", "PA", "VA"],
+  WY: ["CO", "ID", "MT", "NE", "SD", "UT"],
+};
+
+const parseDateValue = (value: string | null | undefined): Date | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const parseTerminal = (value: string | null | undefined) => {
+  if (!value) {
+    return { city: null, state: null } as const;
+  }
+  const [cityRaw, stateRaw] = value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return {
+    city: cityRaw || null,
+    state: stateRaw ? stateRaw.toUpperCase() : null,
+  } as const;
+};
+
+const getPickupStop = (order: DispatchOrder) =>
+  [...order.stops]
+    .sort((a, b) => a.sequence - b.sequence)
+    .find((stop) => stop.type.toLowerCase() === "pickup") ?? null;
+
+const getDeliveryStop = (order: DispatchOrder) =>
+  [...order.stops]
+    .sort((a, b) => b.sequence - a.sequence)
+    .find((stop) => stop.type.toLowerCase() === "delivery") ?? null;
+
+const getOrderWindow = (order: DispatchOrder) => {
+  const now = new Date();
+  const pickupStop = getPickupStop(order);
+  const deliveryStop = getDeliveryStop(order);
+  const pickupAt = parseDateValue(pickupStop?.scheduledDate);
+  const deliveryAt = parseDateValue(deliveryStop?.scheduledDate);
+  const createdAt = parseDateValue(order.createdAt);
+  const start = pickupAt ?? createdAt ?? now;
+  const fallbackEnd = new Date(start.getTime() + ONE_HOUR_MS * 10);
+  const end = deliveryAt && deliveryAt >= start ? deliveryAt : fallbackEnd;
+
+  return { start, end, pickupAt, pickupStop };
+};
+
+const getAssignmentWindow = (assignment: DispatchAssignment) => {
+  const stopTimes = assignment.stops
+    .map((stop) => parseDateValue(stop.scheduledDate))
+    .filter((value): value is Date => value !== null)
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  const fallbackStart = parseDateValue(assignment.assignment.assignedAt);
+  const start = stopTimes[0] ?? fallbackStart;
+  if (!start) {
+    return null;
+  }
+
+  const fallbackEnd = new Date(start.getTime() + ONE_HOUR_MS * 10);
+  const end = stopTimes[stopTimes.length - 1] ?? fallbackEnd;
+  return {
+    start,
+    end: end >= start ? end : fallbackEnd,
+  };
+};
+
+const overlaps = (aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) =>
+  aStart < bEnd && bStart < aEnd;
+
+const estimateDeadheadHours = (
+  driver: DispatchDriver,
+  pickupStop: DispatchStop | null,
+) => {
+  if (!pickupStop?.state) return 12;
+
+  const pickupState = pickupStop.state.toUpperCase();
+  const pickupCity = pickupStop.city.toLowerCase();
+
+  const terminal = parseTerminal(driver.homeTerminal);
+  const originState = (driver.state ?? terminal.state)?.toUpperCase() ?? null;
+  const originCity = (driver.city ?? terminal.city)?.toLowerCase() ?? null;
+
+  if (!originState) {
+    return 12;
+  }
+
+  if (originState === pickupState) {
+    if (originCity && originCity === pickupCity) return 1.5;
+    return 4;
+  }
+
+  const neighboring = neighboringStates[originState] ?? [];
+  return neighboring.includes(pickupState) ? 8 : 16;
+};
+
+const getDriverStatusDelayHours = (status: string) => {
+  switch (status) {
+    case "driving":
+      return 2;
+    case "on_load":
+      return 4;
+    case "on_break":
+      return 1;
+    case "off_duty":
+    case "sleeper":
+      return 10;
+    default:
+      return 0;
+  }
+};
+
+const hasTankerEndorsement = (driver: DispatchDriver) => {
+  const endorsements = (driver.cdlEndorsements ?? []).map((value) =>
+    value.toUpperCase(),
+  );
+  return endorsements.includes("N") || endorsements.includes("X");
+};
+
+const isCdlExpired = (driver: DispatchDriver, atDate: Date) => {
+  const expirationRaw = driver.licenseExpirationDate ?? driver.cdlExpiration;
+  const expirationDate = parseDateValue(expirationRaw);
+  return expirationDate ? expirationDate.getTime() < atDate.getTime() : false;
+};
+
+const isDriverFeasibleForOrder = (
+  driver: DispatchDriver,
+  order: DispatchOrder,
+) => {
+  const now = new Date();
+  const orderWindow = getOrderWindow(order);
+  const assignmentWindows = driver.currentAssignments
+    .map(getAssignmentWindow)
+    .filter((window): window is { start: Date; end: Date } => window !== null);
+
+  if (driver.currentAssignments.length > 0 && assignmentWindows.length === 0) {
+    return false;
+  }
+
+  if (
+    assignmentWindows.some((window) =>
+      overlaps(window.start, window.end, orderWindow.start, orderWindow.end),
+    )
+  ) {
+    return false;
+  }
+
+  const equipmentType = order.equipmentType.toLowerCase();
+  if (equipmentType === "tanker" && !hasTankerEndorsement(driver)) {
+    return false;
+  }
+
+  if (isCdlExpired(driver, orderWindow.start)) {
+    return false;
+  }
+
+  if (!orderWindow.pickupAt) {
+    return true;
+  }
+
+  const latestAssignmentEndMs = assignmentWindows.reduce(
+    (max, window) => Math.max(max, window.end.getTime()),
+    now.getTime(),
+  );
+  const statusDelayMs = getDriverStatusDelayHours(driver.status) * ONE_HOUR_MS;
+  const earliestAvailableAt = new Date(latestAssignmentEndMs + statusDelayMs);
+  const deadheadHours = estimateDeadheadHours(driver, orderWindow.pickupStop);
+  const estimatedArrivalAt = new Date(
+    earliestAvailableAt.getTime() + deadheadHours * ONE_HOUR_MS,
+  );
+
+  return estimatedArrivalAt.getTime() <= orderWindow.pickupAt.getTime();
+};
 
 export default function DispatchPage() {
   const router = useRouter();
@@ -461,6 +677,41 @@ export default function DispatchPage() {
     filters.priorityLevel,
     filters.search,
   ]);
+
+  const unassignedOrderById = useMemo(
+    () => new Map((dispatchData?.unassignedOrders ?? []).map((order) => [order.id, order])),
+    [dispatchData?.unassignedOrders],
+  );
+
+  const focusedSelectedOrder = useMemo(() => {
+    for (let index = selectedOrderIds.length - 1; index >= 0; index -= 1) {
+      const selectedOrder = unassignedOrderById.get(selectedOrderIds[index]);
+      if (selectedOrder) {
+        return selectedOrder;
+      }
+    }
+    return null;
+  }, [selectedOrderIds, unassignedOrderById]);
+
+  const feasibleDriverIdsForFocusedOrder = useMemo(() => {
+    if (!focusedSelectedOrder) return null;
+    const feasibleDriverIds = new Set<number>();
+    filteredDrivers.forEach((driver) => {
+      if (isDriverFeasibleForOrder(driver, focusedSelectedOrder)) {
+        feasibleDriverIds.add(driver.id);
+      }
+    });
+    return feasibleDriverIds;
+  }, [filteredDrivers, focusedSelectedOrder]);
+
+  const splitViewDrivers = useMemo(() => {
+    if (plannerTab !== "split_view" || !feasibleDriverIdsForFocusedOrder) {
+      return filteredDrivers;
+    }
+    return filteredDrivers.filter((driver) =>
+      feasibleDriverIdsForFocusedOrder.has(driver.id),
+    );
+  }, [feasibleDriverIdsForFocusedOrder, filteredDrivers, plannerTab]);
 
   const revenuePercentiles = useMemo(() => {
     const ranked = filteredDrivers
@@ -779,6 +1030,20 @@ export default function DispatchPage() {
         {plannerTab === "split_view" && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <div className="rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-4 py-3 sm:px-5">
+                {focusedSelectedOrder ? (
+                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                    <Badge variant="secondary">{focusedSelectedOrder.orderNumber}</Badge>
+                    <span className="text-muted-foreground">
+                      Showing {splitViewDrivers.length} feasible driver{splitViewDrivers.length === 1 ? "" : "s"} for the selected load
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground sm:text-sm">
+                    Select an unassigned load on the right to filter this driver list to feasible options.
+                  </span>
+                )}
+              </div>
               <div className="h-[520px] overflow-y-auto p-4 sm:p-5 lg:h-[calc(100vh-20rem)]">
                 {isLoading ? (
                   <div className="space-y-3">
@@ -790,7 +1055,7 @@ export default function DispatchPage() {
                   </div>
                 ) : (
                   <DriverTimeline
-                    drivers={filteredDrivers}
+                    drivers={splitViewDrivers}
                     onDriverClick={handleDriverClick}
                     onOrderClick={handleOrderSelect}
                     onDropLoad={handleDropLoad}

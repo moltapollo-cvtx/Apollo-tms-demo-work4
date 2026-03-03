@@ -406,6 +406,12 @@ export function LoadQueue({
                         <input
                           type="checkbox"
                           checked={isSelected}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                          }}
                           onChange={(e) => {
                             e.stopPropagation();
                             onOrderToggleSelect?.(order.id);
