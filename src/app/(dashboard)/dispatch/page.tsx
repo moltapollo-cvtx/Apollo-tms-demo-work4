@@ -193,10 +193,11 @@ const initialFilters: FilterState = {
   search: "",
 };
 
-type PlannerTab = "planner_view" | "revenue_percentiles";
+type PlannerTab = "drivers_timeline" | "unassigned_loads" | "revenue_percentiles";
 
 const plannerTabs: Array<{ value: PlannerTab; label: string }> = [
-  { value: "planner_view", label: "Planner View" },
+  { value: "drivers_timeline", label: "Drivers Timeline" },
+  { value: "unassigned_loads", label: "Unassigned Loads" },
   { value: "revenue_percentiles", label: "Revenue Percentiles" },
 ];
 
@@ -227,7 +228,7 @@ const formatCurrency = (value: number) =>
 export default function DispatchPage() {
   const router = useRouter();
   const [filters, setFilters] = useState<FilterState>(initialFilters);
-  const [plannerTab, setPlannerTab] = useState<PlannerTab>("planner_view");
+  const [plannerTab, setPlannerTab] = useState<PlannerTab>("drivers_timeline");
   const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
 
@@ -617,62 +618,50 @@ export default function DispatchPage() {
           ))}
         </div>
 
-        {plannerTab === "planner_view" && (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:items-start">
-            <section className="rounded-xl border border-border bg-card shadow-sm lg:col-span-3">
-              <div className="border-b border-border px-4 py-3 sm:px-5">
-                <h2 className="text-sm font-semibold text-foreground">Driver Timeline</h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Visual planner with drag-and-drop assignments
-                </p>
-              </div>
-              <div className="p-4 sm:p-5 lg:max-h-[72dvh] lg:overflow-y-auto lg:overscroll-y-contain lg:[-webkit-overflow-scrolling:touch]">
-                {isLoading ? (
-                  <div className="space-y-3">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-16 bg-muted rounded-lg" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <DriverTimeline
-                    drivers={filteredDrivers}
-                    onDriverClick={handleDriverClick}
-                    onOrderClick={handleOrderSelect}
-                    onDropLoad={handleDropLoad}
-                  />
-                )}
-              </div>
-            </section>
+        {plannerTab === "drivers_timeline" && (
+          <div className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="p-4 sm:p-5">
+              {isLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-16 bg-muted rounded-lg" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <DriverTimeline
+                  drivers={filteredDrivers}
+                  onDriverClick={handleDriverClick}
+                  onOrderClick={handleOrderSelect}
+                  onDropLoad={handleDropLoad}
+                />
+              )}
+            </div>
+          </div>
+        )}
 
-            <section className="rounded-xl border border-border bg-card shadow-sm lg:col-span-2">
-              <div className="border-b border-border px-4 py-3 sm:px-5">
-                <h2 className="text-sm font-semibold text-foreground">Unassigned Loads</h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Queue for dispatch-ready orders
-                </p>
-              </div>
-              <div className="p-4 sm:p-5 lg:max-h-[72dvh] lg:overflow-y-auto lg:overscroll-y-contain lg:[-webkit-overflow-scrolling:touch]">
-                {isLoading ? (
-                  <div className="space-y-3">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-20 bg-muted rounded-lg" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <LoadQueue
-                    orders={filteredOrders}
-                    selectedOrderIds={selectedOrderIds}
-                    onOrderSelect={handleOrderSelect}
-                    onOrderToggleSelect={handleOrderToggleSelect}
-                    onBulkAction={handleBulkAction}
-                  />
-                )}
-              </div>
-            </section>
+        {plannerTab === "unassigned_loads" && (
+          <div className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="p-4 sm:p-5">
+              {isLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-20 bg-muted rounded-lg" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <LoadQueue
+                  orders={filteredOrders}
+                  selectedOrderIds={selectedOrderIds}
+                  onOrderSelect={handleOrderSelect}
+                  onOrderToggleSelect={handleOrderToggleSelect}
+                  onBulkAction={handleBulkAction}
+                />
+              )}
+            </div>
           </div>
         )}
 

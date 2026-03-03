@@ -431,7 +431,7 @@ export default function FleetMapPage() {
   };
 
   return (
-    <div className="relative -mx-6 -mt-6 flex min-h-[calc(100dvh-4rem)] flex-col overflow-x-hidden overflow-y-auto lg:h-[calc(100dvh-4rem)] lg:overflow-hidden bg-[radial-gradient(circle_at_top,_#d8f4ff_0%,_#eff8ff_40%,_#f8fafc_74%)]">
+    <div className="relative -mx-6 -mt-6 flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[radial-gradient(circle_at_top,_#d8f4ff_0%,_#eff8ff_40%,_#f8fafc_74%)]">
       <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-apollo-cyan-200/50 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-sky-100/80 blur-3xl" />
 
@@ -554,7 +554,7 @@ export default function FleetMapPage() {
         </aside>
 
         {/* Mobile driver cards - constrained height above map */}
-        <div className="flex max-h-[35vh] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/82 shadow-xl backdrop-blur-xl lg:hidden">
+        <div className="flex h-[40vh] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/82 shadow-xl backdrop-blur-xl lg:hidden">
           <div className="border-b border-slate-200 px-4 py-3">
             <div className="relative">
               <MagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -620,7 +620,7 @@ export default function FleetMapPage() {
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
 
-          <div className="fleet-map-shell relative h-[60vh] w-full flex-1 overflow-hidden rounded-2xl border border-white/80 shadow-2xl lg:h-full lg:min-h-0 md:rounded-[2rem]">
+          <div className="fleet-map-shell relative min-h-[50vh] w-full flex-1 overflow-hidden rounded-2xl border border-white/80 shadow-2xl lg:min-h-0 lg:h-full md:rounded-[2rem]">
             <FleetMapComponent
               filter={filter}
               searchQuery={searchQuery}
